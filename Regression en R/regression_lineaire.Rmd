@@ -1,0 +1,521 @@
+---
+title: "regression_lineaire"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+library(questionr)
+library(descr)
+library(magrittr)
+library(dplyr)
+library(kableExtra)
+
+```
+
+# TP1: Partie 1
+
+## 1. Preparation des donnees
+
+Nous allons utiliser un jeu de donnees standard dans R : mtcars. Ce jeu de donnees contient des
+informations sur les voitures, comme la consommation d'essence (mpg), la cylindree (disp), le poids
+(wt), etc.
+
+### Chargement des donnees et apercu:
+
+```{r}
+data(mtcars)
+head(mtcars)
+```
+
+Le dataset mtcars est un jeu de données intégré dans R qui fournit diverses spécifications techniques pour 32 modèles de voitures, principalement des années 1970. Voici une explication des variables dans ce jeu de données :
+
+    mpg : Miles per gallon, soit la consommation en miles par gallon. C'est une mesure d'efficacité énergétique des véhicules.
+
+    cyl : Nombre de cylindres dans le moteur (souvent 4, 6 ou 8).
+
+    disp : Cylindrée du moteur, en pouces cubes (cubic inches), c'est-à-dire le volume total déplacé par les pistons dans le              moteur.
+
+    hp : Horsepower, soit la puissance du moteur en chevaux.
+
+    drat : Ratio final de transmission (rear axle ratio), c'est le rapport entre la vitesse de rotation du moteur et celle des            roues arrière.
+
+    wt : Poids de la voiture (en milliers de livres).
+
+    qsec : Temps nécessaire pour parcourir un quart de mile (402 mètres), mesuré en secondes. Indicateur de l'accélération de            la voiture.
+
+    vs : Type de moteur (0 = moteur en V, 1 = moteur en ligne).
+
+    am : Type de transmission (0 = automatique, 1 = manuelle).
+
+    gear : Nombre de vitesses dans la boîte de vitesses.
+
+    carb : Nombre de carburateurs.
+
+
+```{r}
+summary(mtcars)
+```
+convertir mes variables catégorielles considérées numériques
+
+```{r}
+# Charger les données
+data(mtcars)
+
+# Transformer les variables en facteur
+mtcars$cyl <- as.factor(mtcars$cyl)
+mtcars$vs <- as.factor(mtcars$vs)
+mtcars$am <- as.factor(mtcars$am)
+mtcars$gear <- as.factor(mtcars$gear)
+mtcars$carb <- as.factor(mtcars$carb)
+
+# Vérification des types de données
+str(mtcars)
+
+```
+Le dataset mtcars est un ensemble de données sur 32 voitures comportant 11 variables : 6 quantitatives (mesures continues) et 5 qualitatives (catégories). Il permet de nombreuses analyses sur des sujets tels que la consommation de carburant, la puissance du moteur et d'autres caractéristiques des véhicules.
+
+## Analyse descriptive
+
+### la consommation en miles par gallon (mpg)
+
+```{r}
+# Charger les données
+data(mtcars)
+
+# Calculer les résumés statistiques pour la variable 'mpg'
+mpg_summary <- data.frame(
+  Statistiques = c("Minimum", "Q1", "Médiane", "Moyenne", "Q3", "Maximum"),
+  Valeurs = c(min(mtcars$mpg),
+              quantile(mtcars$mpg, 0.25),
+              median(mtcars$mpg),
+              mean(mtcars$mpg),
+              quantile(mtcars$mpg, 0.75),
+              max(mtcars$mpg))
+)
+
+# Afficher les résumés statistiques dans un tableau stylé avec la librairie knitr
+
+kable(mpg_summary, col.names = c("Statistiques", "Valeurs"), caption = "Résumé statistique de la variable mpg")
+
+# Créer un boxplot pour la variable 'mpg'
+boxplot(mtcars$mpg, main = "Boxplot de la consommation (mpg)", 
+        ylab = "Miles per Gallon", col = "orange", border = "brown")
+
+```
+
+
+
+### Nombre de cylindres dans le moteur (cyl)
+
+
+
+```{r}
+eff_freq <- freq(mtcars$cyl, sort = "dec", total = T)
+kable(eff_freq, digits = 1, col.names = c("Effectif (n)", "Pourcentage (%)", "Pourcentage sans NA (val%)"), caption = "Tableau des effectifs du nombre de cylindres") %>%
+  kable_styling(full_width = F, bootstrap_options = "striped")
+```
+
+```{r}
+# # Créer une table des données
+# table_data <- table(mtcars$cyl)
+# 
+# # Trier le tableau par fréquence décroissante
+# table_data <- table_data[order(-table_data)]
+# 
+# # Utiliser barplot avec les barres triées par taille décroissante
+# barplot(table_data, col = "lightblue", main = "Distribution du nombre de cylindress", xlab = " Type de cylinddres", ylab = "Fréquence", las = 1)
+```
+```{r}
+# Créer une table des données
+table_data <- table(mtcars$cyl)
+
+# Calculer les pourcentages
+table_data_pct <- prop.table(table_data) * 100
+
+# Trier le tableau par fréquence décroissante
+table_data_pct <- table_data_pct[order(-table_data_pct)]
+
+# Utiliser barplot avec les pourcentages et les barres triées par taille décroissante
+barplot(table_data_pct, col = "lightblue", main = "Distribution du nombre de cylindres", 
+        xlab = "Nombre de cylindres", ylab = "Fréquence (%)", las = 1)
+
+```
+
+
+
+### Matrice de correlation
+
+```{r}
+
+# Sélectionner les variables d'intérêt
+selected_vars <- mtcars[, c("mpg", "cyl", "disp", "hp", "wt")]
+
+# Calculer la matrice de corrélation
+correlation_matrix <- cor(selected_vars)
+
+# Arrondir les valeurs à deux chiffres après la virgule
+correlation_matrix_rounded <- round(correlation_matrix, 2)
+
+# Afficher la matrice de corrélation
+print(correlation_matrix_rounded)
+
+# Optionnel : Pour une meilleure présentation, vous pouvez utiliser la librairie knitr pour afficher le tableau
+library(knitr)
+kable(correlation_matrix_rounded, caption = "Matrice de corrélation des variables")
+
+
+```
+
+
+
+
+
+mpg : Miles per gallon, soit la consommation en miles par gallon. C'est une mesure d'efficacité énergétique des véhicules.
+wt : Poids de la voiture (en milliers de livres).
+
+### 2. Regression Lineaire Simple:
+
+```{r}
+modele_simple <- lm(mpg ~ wt, data = mtcars)
+```
+
+```{r}
+summary(modele_simple)
+```
+ 
+ p-value: 1.294e-10 < 0.05 donc on valide le modéle linéaire.
+ Pr(>|t|) ou p-value : La p-value pour le poids est 1.29e-10, ce qui est bien en dessous du seuil conventionnel de 0.05. Cela indique que l'effet du poids sur la consommation est statistiquement très significatif. Il y a une très faible probabilité que cet effet soit dû au hasard.
+ 
+ R²=0.7528
+Cela signifie que 75.28% de la variance dans la consommation de carburant (mpg) est expliquée par la variance du poids (wt) dans ce modèle. En d'autres termes, le poids explique une grande partie des variations de consommation, mais pas la totalité. 
+ 
+ ## Interprétation
+ 
+```{r} 
+modele_simple$coefficients
+```
+Le modèle linéaire : la consommation d'essence (estimée) = -5.34 x Poids de la voiture + 37.28
+
+
+Tout se passe comme si on ajoutait -5.34 fois le Poids de la voiture à 37.28 pour obtenir la consommation. Lorsque le poids augmente de 1, la consommation moyenne de carburant diminue de 5.34 .
+
+Conclusion :
+
+    Le modèle montre une relation négative très significative entre le poids du véhicule et la consommation de carburant.
+    En pratique, cela signifie que plus une voiture est lourde, moins elle est économe en carburant.
+    Le modèle est statistiquement significatif, et environ 75% de la variation dans la consommation de carburant peut être         expliquée par le poids du véhicule.
+
+```{r}
+plot(mtcars$wt, mtcars$mpg, main = "Regression lineaire simple", xlab = "Poids (wt)", ylab =
+"Consommation d'essence (mpg)")
+abline(modele_simple, col = "blue")
+```
+
+Conclusion :
+
+    Le modèle montre une relation négative très significative entre le poids du véhicule et la consommation de carburant.
+    En pratique, cela signifie que plus une voiture est lourde, moins elle est économe en carburant.
+    Le modèle est statistiquement significatif, et environ 75% de la variation dans la consommation de carburant peut être         expliquée par le poids du véhicule.
+    
+    
+## 3. Regression Lineaire Multiple:
+
+```{r}
+modele_multiple <- lm(mpg ~ wt + disp, data = mtcars)
+```
+
+```{r}
+summary(modele_multiple)
+```
+    La p-value est 4.91e-16, qui est très petite (bien inférieure à 0.05), ce qui indique que l'intercept est hautement significatif.
+
+wt (poids du véhicule) :
+
+    La p-value est 0.00743, qui est inférieure à 0.05, donc le coefficient associé à wt est statistiquement significatif. Cela signifie que le poids du véhicule a un impact significatif sur la consommation de carburant (mpg).
+
+disp (cylindrée du moteur) :
+
+    La p-value est 0.06362, qui est légèrement supérieure à 0.05. Cela signifie que disp n'est pas statistiquement significatif au niveau de signification de 5%. Cependant, il est assez proche de la limite, ce qui peut indiquer une tendance.
+
+
+R² : Le Multiple R-squared est 0.7809 (ou environ 78.09%). Cela signifie que 78.09% de la variance de la consommation de carburant (mpg) est expliquée par les variables indépendantes wt (poids) et disp (cylindrée).
+
+Conclusion :
+
+    Significativité des coefficients : Le poids du véhicule (wt) est statistiquement significatif (p-value < 0.05), tandis que la cylindrée du moteur (disp) n'est pas significative au seuil de 5% (p-value > 0.05).
+
+    R² : Le modèle explique environ 78.09% de la variance de la consommation de carburant, ce qui est un bon ajustement. Cela montre que wt et disp expliquent une grande partie de la variation de mpg, mais pas la totalité.
+
+
+### Diagnostic des residus:
+
+```{r}
+par(mfrow = c(2, 2))
+plot(modele_multiple)
+```
+Ce graphique permet de détecter les points ayant une forte influence sur le modèle. Les points avec un fort levier et des résidus importants peuvent avoir un impact disproportionné sur la régression.
+Les points en dehors des lignes en pointillés (Cook’s Distance) pourraient indiquer des influences disproportionnées. Par exemple, le point Chrysler Imperial semble avoir une forte influence sur le modèle.
+
+
+
+    Non-linéarité potentielle : Le graphique des résidus vs ajustés montre une légère courbure, suggérant que la relation pourrait ne pas être parfaitement linéaire.
+    Légère violation de la normalité : Le Q-Q plot montre des écarts pour les valeurs extrêmes, indiquant que les résidus ne sont pas parfaitement normalement distribués.
+    Légère hétéroscédasticité : Le graphique Scale-Location suggère une variance non constante des résidus.
+    Points influents : Le graphique Résidus vs Leverage montre que quelques points (comme Chrysler Imperial) peuvent avoir une influence disproportionnée sur le modèle.
+
+Ces diagnostics suggèrent que, bien que le modèle capture globalement la relation entre les variables, il pourrait être amélioré en testant des transformations de variables ou en explorant des modèles plus complexes pour traiter la non-linéarité et l'hétéroscédasticité.
+
+
+## Previsions:
+
+```{r}
+nouvelles_donnees <- data.frame(wt = c(3, 4), disp = c(200, 300))
+predictions <- predict(modele_multiple, nouvelles_donnees)
+predictions
+```
+    Première voiture : Une voiture plus légère (wt = 3) et avec une cylindrée plus petite (disp = 200) a une meilleure consommation de carburant (21.36 mpg).
+    Deuxième voiture : Une voiture plus lourde (wt = 4) et avec une cylindrée plus importante (disp = 300) consomme plus de carburant, avec une consommation plus basse (16.24 mpg).
+
+Ces résultats sont cohérents avec l'idée générale que les voitures plus lourdes et avec une cylindrée plus élevée consomment davantage de carburant.
+
+## Conclusion
+Le modèle multiple présente un R² et un R² ajusté légèrement plus élevés et une erreur standard résiduelle légèrement plus faible, ce qui indique une meilleure performance globale. Cependant, l'amélioration est marginale.
+
+Le modèle simple est plus facile à interpréter et, bien qu'il explique un peu moins de variance que le modèle multiple, il est toujours très performant et statistiquement significatif.
+
+En résumé, le modèle simple semble suffisant pour expliquer la relation entre le poids et la consommation de carburant, et l'ajout de disp dans le modèle multiple n'apporte pas une amélioration substantielle en termes de performance.
+
+
+
+
+
+
+
+# Partie 2: Données Kaggle
+
+Nous allons étudier la corrélation entre la consommation et d’autres variables en pour les véhicules
+de marque Kia, pour les voitures datant de 2015 à aujourd’hui.
+
+Les données contiennent des informations techniques sur différents modèles de voitures. Voici une première vue d'ensemble du contenu du fichier :
+Description initiale des colonnes :
+
+    id_trim : Identifiant unique pour chaque ligne.
+    Marque : La marque de la voiture (par exemple, Citroen).
+    Modèle : Le modèle de la voiture.
+    Génération : Le numéro de génération du modèle.
+    Année de début (Génération) et Année de fin (Génération) : Les années pendant lesquelles la génération de ce modèle a été fabriquée.
+    Carrosserie et Type de carrosserie : Le type de carrosserie du véhicule (par exemple, Cabriolet).
+    Nombre de places : Nombre de sièges dans la voiture.
+    Consommation mixte sur 100 km : Consommation de carburant en litres pour 100 km en cycle mixte.
+    Accélération (0-100 km/h) : Temps nécessaire pour que la voiture atteigne 100 km/h.
+    Réservoir : Capacité du réservoir en litres.
+    Freins avant et arrière : Type de freins (par exemple, tambour).
+    Suspension avant et arrière : Type de suspension utilisé.
+
+Le dataset contient plusieurs informations techniques comme les types de freins, les suspensions, et les caractéristiques de performance comme la consommation de carburant, la capacité du réservoir, l'accélération, etc.
+
+## Charger les données
+
+```{r eval=TRUE, echo=FALSE} 
+donnees <- read.csv("Car2DB_fra_cut.csv",
+                    sep=";",
+                    dec=",",
+                    skip=1, 
+                    stringsAsFactors = TRUE,
+                    encoding = "UTF-8")
+```
+
+
+
+##Recupération des données des véhicules de la marque Kia à partir de 2015
+ 
+```{r}
+KIA2015 <- subset (x = donnees,
+subset = (Marque =="Kia") & (Année.de.début..Génération. >= 2015),
+select = c(1:58))
+print(KIA2015)
+```
+
+
+
+
+
+# Matrice de correlation
+
+```{r}
+# Extraire les variables d'intérêt
+ConsommationUrbaine <- KIA2015$Consommation.urbaine.sur.100.km..l.
+Acceleration <- KIA2015$Accélération..0.100.km.h...seconde.
+ConsommationMixte <- KIA2015$Consommation.mixte.sur.100.km..l.
+ConsommationRoute <- KIA2015$Consommation.route.sur.100.km..l.
+
+# Créer une data frame avec ces variables
+data_corr <- data.frame(ConsommationUrbaine, Acceleration, ConsommationMixte, ConsommationRoute)
+
+# Calculer la matrice de corrélation
+correlation_matrix <- cor(data_corr, use = "complete.obs")
+
+# Arrondir les valeurs à deux chiffres après la virgule
+correlation_matrix_rounded <- round(correlation_matrix, 2)
+
+# Afficher la matrice de corrélation
+print(correlation_matrix_rounded)
+
+# Optionnel : Utiliser kable pour une présentation plus esthétique
+library(knitr)
+kable(correlation_matrix_rounded, caption = "Matrice de corrélation des variables avec deux chiffres après la virgule")
+
+```
+
+Les résultats de la matrice de corrélation montrent des relations fortes entre les différentes variables de consommation de carburant. Il existe une corrélation positive très forte entre la consommation urbaine et la consommation mixte (0.99) ainsi qu'entre la consommation urbaine et la consommation routière (0.94), ce qui signifie que les véhicules qui consomment beaucoup en ville tendent également à consommer beaucoup en cycle mixte et sur route. De plus, la corrélation très forte entre la consommation mixte et la consommation routière (0.98) montre que ces deux types de consommation sont étroitement liés. En revanche, il existe une corrélation négative modérée entre l'accélération et les différentes mesures de consommation, avec des coefficients de -0.56 (avec la consommation urbaine), -0.60 (avec la consommation mixte), et -0.63 (avec la consommation routière). Cela suggère que les voitures avec une meilleure accélération tendent à être plus économes en carburant, que ce soit en milieu urbain ou routier. En résumé, les véhicules qui consomment beaucoup dans un environnement consomment généralement beaucoup dans d'autres, tandis que les véhicules plus performants en termes d'accélération tendent à consommer moins de carburant.
+
+## Modele lineaire simple
+
+L'objectif de cette régression est de déterminer si la consommation routière peut expliquer ou prédire la consommation urbaine des véhicules KIA en 2015, et d'analyser la relation entre ces deux types de consommation de carburant.
+
+
+Consommation urbaine sur 100 km (l) :
+
+    Il s'agit de la quantité de carburant (en litres) consommée par une voiture pour parcourir 100 kilomètres en milieu urbain. Cette valeur représente la consommation de carburant lorsque la voiture circule principalement dans des zones de trafic dense, avec de nombreux arrêts (comme en ville), ce qui augmente généralement la consommation par rapport à des trajets sur route ou autoroute.
+
+Consommation route sur 100 km (l) :
+
+    Cette variable représente la quantité de carburant (en litres) consommée par la voiture pour parcourir 100 kilomètres sur une route ou autoroute. Dans ces conditions, la voiture roule généralement à des vitesses plus stables et plus élevées, avec moins d'arrêts, ce qui tend à réduire la consommation de carburant par rapport à la conduite en ville.
+
+Accélération (0-100 km/h en secondes) :
+
+    Cette variable indique le temps (en secondes) qu'il faut à la voiture pour passer de 0 à 100 km/h. C'est une mesure de la performance d'accélération de la voiture. Plus cette valeur est faible, plus la voiture est performante en termes d'accélération, ce qui est souvent associé à des véhicules plus puissants.
+
+```{r}
+y <- KIA2015$Consommation.urbaine.sur.100.km..l.
+x <- KIA2015$Consommation.route.sur.100.km..l.
+
+res <- lm(y~x)
+```
+
+
+```{r}
+plot(y~x)
+abline(res,col="red")
+```
+
+```{r}
+summary(res)
+```
+
+La p-value pour le modèle est < 2.2e-16, ce qui est bien en dessous du seuil conventionnel de 0.05. Cela indique que l'effet de la consommation routière sur la consommation urbaine est statistiquement très significatif. Il y a une très faible probabilité que cet effet soit dû au hasard, et nous validons donc le modèle linéaire.
+
+Le Multiple R-squared est 0.8668. Cela signifie que 86.68% de la variance dans la consommation urbaine est expliquée par la variance de la consommation routière dans ce modèle. En d'autres termes, la consommation routière explique une grande partie des variations de la consommation urbaine, mais pas la totalité
+
+
+```{r} 
+res$coefficients
+```
+L'équation du modèle est la suivante :
+Consommation urbaine (estimée)=1.99×Consommation routiere−2.11
+Consommation urbaine (estimée)=1.99×Consommation routiere−2.11 Tout se passe comme si on ajoutait 1.99 fois la consommation routière à -2.11 pour obtenir la consommation urbaine. Lorsque la consommation routière augmente de 1 litre, la consommation urbaine augmente en moyenne de 1.99 litres.
+
+
+Le modèle montre une relation positive très significative entre la consommation routière et la consommation urbaine.
+En pratique, cela signifie que plus la consommation routière est élevée, plus la consommation en milieu urbain est importante.
+Le modèle est statistiquement significatif, et environ 86.68% de la variation dans la consommation urbaine peut être expliquée par la consommation routière.
+
+
+on retrouve ici les 10 premières valeurs qui ont servis à calculer le modèle
+
+```{r} 
+head(res$residuals,10)
+```
+on retrouve ici les 10 premières valeurs des résidus.
+
+```{r}
+head(res$fitted.values,10)
+```
+on retrouve ici les 10 premières valeurs estimées grçace au modéle précedent
+ces valeurs sont plausibles.
+
+## Modele linéaire multiple
+
+Ce modèle de régression multiple cherche à prédire la consommation urbaine en fonction de la consommation routière et de l'accélération.
+
+```{r}
+y <- KIA2015$Consommation.urbaine.sur.100.km..l.
+x <- KIA2015$Consommation.route.sur.100.km..l.
+z <- KIA2015$Accélération..0.100.km.h...seconde.
+
+
+res <- lm(y~x+z)
+```
+
+
+```{r}
+summary(res)
+```
+
+Intercept :
+
+    La p-value est 0.000554, qui est très petite (bien inférieure à 0.05), ce qui indique que l'intercept est hautement significatif. Cela signifie que même en l'absence de consommation routière et d'accélération, l'intercept apporte une contribution significative à la prédiction de la consommation urbaine.
+
+Consommation routière (x) :
+
+    La p-value est < 2e-16, ce qui est bien en dessous de 0.05, donc le coefficient associé à la consommation routière est statistiquement significatif. Cela signifie que la consommation routière a un impact très significatif sur la consommation urbaine. Une augmentation de la consommation routière entraîne une augmentation significative de la consommation urbaine.
+
+Accélération (z) :
+
+    La p-value est 0.312832, qui est bien supérieure à 0.05. Cela signifie que le coefficient associé à l'accélération n'est pas statistiquement significatif au seuil de signification de 5%. L'accélération n'a donc pas d'effet significatif sur la consommation urbaine dans ce modèle.
+
+R² :
+
+    Le Multiple R-squared est 0.8922 (ou environ 89.22%). Cela signifie que 89.22% de la variance de la consommation urbaine est expliquée par les variables indépendantes : consommation routière et accélération. Cela indique que ces variables expliquent une grande partie de la variation de la consommation urbaine.
+    
+Conclusion :
+
+    Significativité des coefficients : La consommation routière est hautement significative (p-value < 0.05), ce qui montre qu'elle a un impact important sur la consommation urbaine. En revanche, l'accélération n'est pas significative (p-value > 0.05), ce qui signifie qu'elle n'a pas d'effet statistiquement prouvé sur la consommation urbaine dans ce modèle.
+    R² : Le modèle explique environ 89.22% de la variance de la consommation urbaine, ce qui est un excellent ajustement. Cela montre que la consommation routière est un facteur prédominant dans l'explication des variations de la consommation urbaine, tandis que l'accélération n'a pas de rôle significatif dans ce contexte.
+    
+    
+## conclusion 
+
+Le modèle multiple a un R² et un R² ajusté légèrement plus élevés, ce qui indique qu'il explique un peu mieux la variance de la consommation urbaine. Cependant, l'amélioration est marginale, et l'ajout de l'accélération n'est pas statistiquement significatif.
+Le modèle simple est plus facile à interpréter, et la consommation routière est un facteur très significatif pour expliquer la consommation urbaine. Le modèle simple est donc suffisant pour expliquer cette relation.
+En résumé, bien que le modèle multiple ait de meilleures performances statistiques globales, le modèle simple est plus pratique et tout aussi informatif, car l'ajout de l'accélération ne contribue pas de manière significative à l'explication de la consommation urbaine.
+    
+    
+```{r}
+y <- KIA2015$Consommation.urbaine.sur.100.km..l.
+z <- KIA2015$Accélération..0.100.km.h...seconde.
+
+
+Verification_modele <- lm(y~z)
+```
+
+
+```{r}
+summary(Verification_modele)
+```
+
+```{r}
+plot(y~z)
+abline(Verification_modele,col="red")
+```
+
+## Un modele linéaire entre les variables corrélées pour voir la valeur du R²
+
+Nous allons faire un modele lineaire avec avec les variables qui sont corrélées
+
+```{r}
+y <- KIA2015$Consommation.urbaine.sur.100.km..l.
+x <- KIA2015$Consommation.route.sur.100.km..l.
+z <- KIA2015$Consommation.mixte.sur.100.km..l.
+
+modele_corr <- lm(y~x+z)
+summary(modele_corr)
+```
+
+
+Le Multiple R-squared est 0.9941 (ou 99.41%), ce qui signifie que 99.41% de la variance de la consommation urbaine est expliquée par la consommation routière et la consommation mixte.
+
+Comparaison avec le modèle multiple précédent :
+
+Dans le modèle multiple précédent, où la consommation urbaine était prédite par la consommation routière et l'accélération, le Multiple R-squared était de 0.8922 (89.22%). Comparé à ce nouveau modèle, qui a un R² de 99.41%, le modèle actuel est beaucoup plus performant en termes d'explication de la variance de la consommation urbaine. Le modèle avec la consommation mixte offre donc une bien meilleure précision que celui avec l'accélération.

@@ -1,0 +1,281 @@
+---
+title: "Regression_logistique"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+library(questionr)
+library(descr)
+library(magrittr)
+library(dplyr)
+library(kableExtra)
+```
+
+
+#Préparation des données :
+Nous allons utiliser le jeu de données `iris` disponible dans R. Ce jeu de données contient des
+observations sur trois espèces de fleurs, avec des mesures sur la longueur et la largeur des pétales
+et des sépales.
+
+## Chargement des données et aperçu :
+
+```{r}
+data(iris)
+head(iris)
+summary(iris)
+```
+
+Le jeu de données Iris contient un total de 150 observations, chacune représentant une fleur d'iris. Ce jeu de données comporte 5 variables, dont 4 variables quantitatives et 1 variable qualitative. Les variables quantitatives mesurent des caractéristiques physiques des fleurs, à savoir : la longueur des sépales (Sepal.Length), la largeur des sépales (Sepal.Width), la longueur des pétales (Petal.Length), et la largeur des pétales (Petal.Width), toutes exprimées en centimètres. La variable qualitative est l'espèce de la fleur (Species), qui prend trois valeurs distinctes : Setosa, Versicolor, et Virginica, avec une répartition égale de 50 observations pour chaque espèce.
+
+### Question : Quel type de variable est la variable cible (Species) dans ce jeu de données ?
+
+La variable cible Species dans le jeu de données Iris est une variable qualitative (ou catégorielle), car elle représente l'espèce de la fleur, qui peut prendre trois catégories distinctes : Setosa, Versicolor, et Virginica. Ces catégories ne sont pas ordonnées et ne représentent pas des valeurs numériques, ce qui fait de Species une variable nominale.
+
+
+## Transformation des données :
+Nous allons transformer ce jeu de données pour réaliser une classification binaire en comparant
+deux espèces (par exemple, Setosa et Versicolor).
+
+
+```{r}
+iris_binary <- subset(iris, Species != "virginica")
+iris_binary$Species <- ifelse(iris_binary$Species == "setosa", 0, 1)
+```
+
+
+La transformation est nécessaire car la régression logistique binaire ne peut gérer que deux classes. En transformant la variable Species en une variable binaire, on adapte le problème à un modèle qui peut prédire si une fleur est Setosa (0) ou Versicolor (1).
+
+Si nous ne transformons pas cette variable, le modèle ne pourra pas correctement gérer le problème, car il s'attend à une variable cible avec seulement deux valeurs possibles.
+
+##3. Régression Logistique :
+##Hypothèse de départ : On veut prédire l'espèce d'une fleur en fonction de la longueur des pétales.
+
+Étape 1 : Créer le modèle:
+
+
+```{r}
+modele_logistique <- glm(Species ~ Petal.Length, data = iris_binary, family = binomial)
+```
+
+```{r}
+summary(modele_logistique)
+```
+### Question : Que signifient les coefficients estimés dans le modèle de régression logistique ?
+
+Intercept (β0=−96.12β0=−96.12) :
+
+    Ce coefficient représente la log-odds de l'espèce Versicolor quand la variable Petal.Length est égale à 0. Cependant, comme cette valeur est extrêmement négative, cela indique que la probabilité qu'une fleur avec une longueur de pétale de 0 soit Versicolor est presque nulle. Cela n'a pas de signification pratique ici car une longueur de pétale de 0 n'est pas réaliste pour les fleurs dans ce contexte.
+
+Coefficient de Petal.Length (β1=39.07β1=39.07) :
+
+    Ce coefficient signifie que pour chaque unité supplémentaire dans la longueur des pétales (Petal.Length), la log-odds d'une fleur d'être classée comme Versicolor (plutôt que Setosa) augmente de 39.07. Cela correspond à une augmentation très importante, ce qui indique que la longueur des pétales est un facteur déterminant pour classer une fleur comme Versicolor par rapport à Setosa.
+
+
+Dans ce modèle, la longueur des pétales est un facteur décisif pour prédire si une fleur est Versicolor ou Setosa. Les coefficients très élevés reflètent la séparation parfaite des deux espèces en fonction de cette caractéristique, rendant la classification entre les deux relativement simple avec cette seule variable.
+
+
+
+
+
+##Vérification de la significativité des coefficients avec les valeurs p :
+
+Dans le modèle de régression logistique que vous avez ajusté, nous regardons la colonne Pr(>|z|), qui donne les p-values pour chaque coefficient.
+
+    Intercept :
+        La p-value de l'intercept est 0.999, ce qui est bien supérieur au seuil conventionnel de 0.05. Cela signifie que l'intercept n'est pas statistiquement significatif. L'intercept, dans ce cas, ne semble pas jouer un rôle important dans la prédiction des espèces (ce qui peut être logique dans ce contexte car il n'a pas de sens pratique que la longueur des pétales soit 0).
+
+    Petal.Length (Longueur des Pétales) :
+        La p-value pour le coefficient de Petal.Length est également 0.999, ce qui est bien supérieur à 0.05. Cela signifie que ce coefficient n'est pas statistiquement significatif, probablement en raison de la séparation parfaite entre les espèces dans cette variable. Cela suggère qu'il n'y a pas de besoin statistique de rendre ce coefficient significatif dans ce modèle simpliste avec une séparation parfaite.
+        
+        
+Coefficient de Petal.Length (β1=39.07β1=39.07) :
+
+    Le coefficient de 39.07 pour Petal.Length signifie qu'à chaque augmentation de 1 cm dans la longueur des pétales, la log-odds d'une fleur d'être Versicolor augmente de 39.07.
+    En termes de probabilités, cela montre que la longueur des pétales a un effet énorme sur la probabilité d'une fleur d'être classée comme Versicolor. En pratique, cela indique qu'une fleur avec une grande longueur de pétale a une très forte probabilité d'appartenir à l'espèce Versicolor plutôt qu'à Setosa.
+    
+    
+
+
+##Étape 3 : Tracer la courbe ROC pour évaluer la performance :
+
+```{r}
+library(pROC)
+roc_curve <- roc(iris_binary$Species, predict(modele_logistique, type = "response"))
+plot(roc_curve)
+```
+#### La courbe de ROC
+La courbe ROC (Receiver Operating Characteristic) est un graphique qui permet d'évaluer les performances d'un modèle de classification binaire, comme la régression logistique. Elle trace la sensibilité (ou rappel) en fonction du taux de faux positifs (1 - spécificité) à différents seuils de probabilité. La courbe ROC montre comment le modèle équilibre entre détection correcte des vrais positifs et limitation des faux positifs.
+
+    Sensibilité (rappel) : Proportion de vrais positifs (les observations correctement classées comme positives sur toutes les     observations positives).
+    Spécificité : Proportion de vrais négatifs (les observations correctement classées comme négatives sur toutes les              observations négatives).
+    Taux de faux positifs : Proportion d'observations négatives incorrectement classées comme positives.
+
+Un modèle parfait aurait une courbe qui monte directement dans le coin supérieur gauche (sensibilité = 1 et spécificité = 1), tandis qu'un modèle aléatoire aurait une courbe proche de la diagonale.
+
+
+#### Interprétation de l'AUC (Area Under the Curve) :
+
+L'AUC (Aire Sous la Courbe) mesure la surface sous la courbe ROC. C'est un indicateur de la performance globale du modèle. L'AUC varie entre 0 et 1 :
+
+    AUC = 1 : Modèle parfait, qui classifie toutes les observations correctement.
+    AUC = 0.5 : Modèle aléatoire, qui ne fait pas mieux qu'une simple prédiction aléatoire (la courbe se confond avec la diagonale).
+    AUC < 0.5 : Modèle qui fait pire que des prédictions aléatoires (inversion des classes).
+
+
+Dans votre graphique ROC, la courbe monte directement dans le coin supérieur gauche, ce qui suggère une performance très élevée du modèle. Cela est probablement dû à la séparation parfaite des deux classes (Setosa et Versicolor) en fonction de la longueur des pétales. Le modèle est donc capable de prédire presque parfaitement si une fleur est Setosa ou Versicolor, en grande partie grâce à cette caractéristique discriminante.
+Une AUC proche de 1 suggère que le modèle est presque parfait, mais cela est probablement dû à la forte séparation des données par la longueur des pétales, ce qui peut limiter la généralisation du modèle à d'autres ensembles de données.
+
+
+### 5. Prédictions :
+Faire des prédictions avec de nouvelles données :
+
+```{r}
+nouvelles_donnees <- data.frame(Petal.Length = c(1.5, 4.5))
+predict(modele_logistique, nouvelles_donnees, type = "response")
+```
+Pour une longueur de pétale de 1.5 cm : La probabilité prédite par le modèle est 2.220446e-16, ce qui est presque 0. Cela signifie que, selon le modèle, il est presque certain que cette fleur appartient à la classe Setosa (codée comme 0), et non à la classe Versicolor (codée comme 1). Ce résultat est logique car les fleurs Setosa ont généralement des pétales plus courts.
+
+Pour une longueur de pétale de 4.5 cm : La probabilité prédite est 1.000000e+00, ce qui est 100%. Cela signifie que, selon le modèle, il est certain que cette fleur appartient à la classe Versicolor (codée comme 1). Encore une fois, cela a du sens car les fleurs Versicolor ont généralement des pétales plus longs.
+
+
+Le modèle de régression logistique prédit que les fleurs avec une longueur de pétale de 1.5 cm sont presque certainement de l'espèce Setosa, et celles avec une longueur de pétale de 4.5 cm sont presque certainement de l'espèce Versicolor. Ces prédictions confirment que la longueur des pétales est un facteur déterminant pour distinguer ces deux espèces.
+
+## - Améliorons le modèle en ajoutant la largeur des pétales (`Petal.Width`).
+
+```{r}
+modele_logistique_multiple <- glm(Species ~ Petal.Length + Petal.Width, data = iris_binary, family
+= binomial)
+summary(modele_logistique_multiple)
+```
+Dans les deux modèles, les p-values pour les coefficients (que ce soit Petal.Length seule ou Petal.Length + Petal.Width) sont très élevées (1.000), ce qui signifie que ces coefficients ne sont pas significatifs statistiquement. Cela est probablement dû à la séparation parfaite des classes dans le jeu de données, rendant les variables prédictives extrêmement puissantes mais non significatives au sens statistique.
+
+L'AIC pour le modèle à une variable est 4, tandis que celui pour le modèle à deux variables est 6. Un AIC plus faible indique un meilleur modèle. Le modèle avec une seule variable a donc un AIC inférieur, ce qui suggère qu'il est légèrement meilleur en termes d'équilibre entre complexité et ajustement des données.
+
+Modèle à deux variables (Petal.Length + Petal.Width) : Bien que l'ajout de Petal.Width n'apporte pas d'amélioration significative au modèle (les p-values restent non significatives), il réduit légèrement la deviance résiduelle, mais au prix d'une augmentation de l'AIC, ce qui suggère que la variable supplémentaire n'est pas nécessaire dans ce cas.
+
+
+```{r}
+roc_curve <- roc(iris_binary$Species, predict(modele_logistique_multiple, type = "response"))
+plot(roc_curve)
+```
+
+
+La courbe ROC et la probable AUC proche de 1 montrent que le modèle de régression logistique multiple discrimine presque parfaitement entre les deux espèces Setosa et Versicolor. Cependant, la performance étant presque identique au modèle à une seule variable, l'ajout de Petal.Width n'a pas apporté une amélioration significative en termes de performance, probablement en raison de la séparation parfaite entre les deux espèces en fonction de Petal.Length.
+
+
+
+# Partie 2: données Kaggle
+
+## Charger les données
+
+```{r eval=TRUE, echo=FALSE} 
+donnees <- read.csv("lung cancer survey.csv",
+                    stringsAsFactors = TRUE,
+                    encoding = "UTF-8")
+```
+
+```{r}
+head(donnees)
+summary(donnees)
+str(donnees)
+```
+Le jeu de données représente une population de 309 individus, avec diverses informations sur leur santé et leurs habitudes de vie, en lien potentiel avec le cancer du poumon. La variable cible est LUNG_CANCER, qui indique si une personne a le cancer du poumon ou non.
+
+Nous avons plusieurs valables males definies nous allons les recoder en variables binaires.
+
+```{r}
+# Conversion des variables en facteurs (sans changer les labels)
+donnees$SMOKING <- as.factor(donnees$SMOKING)
+donnees$YELLOW_FINGERS <- as.factor(donnees$YELLOW_FINGERS)
+donnees$ANXIETY <- as.factor(donnees$ANXIETY)
+donnees$PEER_PRESSURE <- as.factor(donnees$PEER_PRESSURE)
+donnees$CHRONIC.DISEASE <- as.factor(donnees$CHRONIC.DISEASE)
+donnees$FATIGUE <- as.factor(donnees$FATIGUE)
+donnees$ALLERGY <- as.factor(donnees$ALLERGY)
+donnees$WHEEZING <- as.factor(donnees$WHEEZING)
+donnees$ALCOHOL.CONSUMING <- as.factor(donnees$ALCOHOL.CONSUMING)
+donnees$COUGHING <- as.factor(donnees$COUGHING)
+donnees$SHORTNESS.OF.BREATH <- as.factor(donnees$SHORTNESS.OF.BREATH)
+donnees$SWALLOWING.DIFFICULTY <- as.factor(donnees$SWALLOWING.DIFFICULTY)
+donnees$CHEST.PAIN <- as.factor(donnees$CHEST.PAIN)
+donnees$GENDER <- as.factor(donnees$GENDER)
+
+str(donnees)
+
+```
+
+
+
+## Régression Logistique
+
+```{r}
+modele_logistique1 <- glm(LUNG_CANCER ~ ALCOHOL.CONSUMING + AGE + SMOKING + COUGHING + FATIGUE +CHRONIC.DISEASE, data = donnees, family= binomial)
+summary(modele_logistique1)
+```
+
+ALCOHOL.CONSUMING2: 2.313172.31317 – La consommation d'alcool augmente significativement les chances d'avoir un cancer du poumon. Le pp-value associé (3.98e−063.98e−06) montre que cet effet est hautement significatif (p < 0.001), ce qui signifie que les personnes consommant de l'alcool ont une probabilité beaucoup plus élevée d'avoir un cancer du poumon.
+
+AGE: 0.015710.01571 – L'âge a un effet très faible et non significatif (p=0.523326p=0.523326) sur la probabilité de cancer du poumon.
+
+SMOKING2: 0.955890.95589 – Le tabagisme augmente significativement les chances d'avoir un cancer du poumon (p=0.023505p=0.023505), avec un coefficient positif.
+
+COUGHING2: 1.803231.80323 – La toux est un facteur fortement lié au cancer du poumon, avec un effet significatif (p=0.000184p=0.000184).
+
+FATIGUE2: 1.564891.56489 – La fatigue est également un facteur significatif (p=0.000265p=0.000265) qui augmente la probabilité d'avoir un cancer du poumon.
+
+CHRONIC.DISEASE2: 1.156621.15662 – La présence d'une maladie chronique est significativement associée au cancer du poumon (p=0.005588p=0.005588).
+
+
+Les variables les plus influentes sur la probabilité de développer un cancer du poumon sont la consommation d'alcool, le tabagisme, la toux, la fatigue, et la présence de maladies chroniques. L'âge n'a pas d'effet significatif dans ce modèle.
+
+
+```{r}
+roc_curve <- roc(donnees$LUNG_CANCER, predict(modele_logistique1, type = "response"))
+plot(roc_curve)
+```
+
+```{r}
+auc(roc_curve)
+```
+Notre courbe ROC est bien au-dessus de la diagonale (la ligne de hasard), ce qui confirme que notre modèle est significativement meilleur qu'un modèle aléatoire. Il est capable de discriminer correctement les individus malades des individus sains.
+
+De plus, notre modèle de régression logistique est performant avec une AUC de 0.8559, ce qui signifie qu'il est capable de classer efficacement les individus à risque de cancer du poumon.
+
+
+## interactions entre les variables
+Nous alons mettre en interaction quelques variables pour que notre modele soit plut performant:
+
+
+```{r}
+modele_interactions <- glm(LUNG_CANCER ~ COUGHING * SMOKING + ALCOHOL.CONSUMING * FATIGUE, 
+                           family = binomial, data = donnees)
+summary(modele_interactions)
+
+
+```
+COUGHING2 : Le coefficient est de 1.78131.7813 et est très significatif (p=0.002315p=0.002315), indiquant que la toux a un effet important sur la probabilité de développer un cancer du poumon.
+SMOKING2 : Le coefficient est de 1.09651.0965, également significatif (p=0.024672p=0.024672). Cela signifie que le tabagisme est un facteur de risque significatif pour le cancer du poumon.
+ALCOHOL.CONSUMING2 : Coefficient de 2.31472.3147 avec une très forte significativité (p=0.000117p=0.000117). Cela montre que la consommation d'alcool est fortement associée au risque de cancer du poumon.
+FATIGUE2 : Coefficient de 1.47221.4722 avec une p=0.002148p=0.002148. Cela indique que la fatigue est également un facteur de risque significatif.
+
+Les effets principaux de la toux, du tabagisme, de la consommation d'alcool, et de la fatigue sont tous significatifs et contribuent fortement au modèle.
+
+
+```{r}
+roc_curve <- roc(donnees$LUNG_CANCER, predict(modele_interactions, type = "response"))
+plot(roc_curve)
+```
+
+
+```{r}
+auc(roc_curve)
+```
+
+
+Notre courbe ROC est bien au-dessus de la diagonale (la ligne de hasard), ce qui confirme que notre modèle est significativement meilleur qu'un modèle aléatoire. Il est capable de discriminer correctement les individus malades des individus sains.
+
+De plus, notre modèle de régression logistique est performant avec une AUC de 0.8478, ce qui signifie qu'il est capable de classer efficacement les individus à risque de cancer du poumon.
+
+
+Le modèle sans interactions est le meilleur choix. Il a une meilleure AUC, un AIC plus faible, et il est plus simple, tout en étant performant pour discriminer entre les individus à risque de cancer du poumon.
